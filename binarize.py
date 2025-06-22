@@ -11,6 +11,7 @@ import os
 import numpy as np
 from skimage.morphology import diamond, opening, erosion, binary_closing, skeletonize
 from argparse import ArgumentParser
+from pathlib import Path
 
 def getCropIndizes(startx, starty, angle, cropLength):
     # Generate a list of tuples representing the indices of the cropped region
@@ -34,10 +35,10 @@ def cutIsValidByZeros(startx, starty, angle, cropLength, img, bone, btwo, labele
         newx = startx + cropLength * np.cos(np.radians(angle))
         
         # Check if the end of the crop has zeros in the image
-        hasZerosEnd = img[round(newy)][round(newx)] == 0
+        hasZerosEnd = img[round(newy), round(newx)] == 0
         
         # Get the label of the first pixel in the cropped region
-        labeledFirst = labeledImg[round(newy)][round(newx)]
+        labeledFirst = labeledImg[round(newy), round(newx)]
         
         # Check if the first pixel is on the expected label spaces
         isOnGoodSpace = (labeledFirst == bone) or (labeledFirst == btwo)
@@ -51,10 +52,10 @@ def cutIsValidByZeros(startx, starty, angle, cropLength, img, bone, btwo, labele
         newx = startx + -cropLength * np.cos(np.radians(angle))
         
         # Check if the other end of the crop has zeros in the image
-        hasZerosEnd = img[round(newy)][round(newx)] == 0
+        hasZerosEnd = img[round(newy), round(newx)] == 0
         
         # Get the label of the second pixel in the cropped region
-        labeledSecond = labeledImg[round(newy)][round(newx)]
+        labeledSecond = labeledImg[round(newy), round(newx)]
         
         # Check if the second pixel is on the expected label spaces and is different from the first pixel
         isOnGoodSpace = (labeledSecond == bone) or (labeledSecond == btwo)
@@ -75,7 +76,7 @@ def cutIsValidByZeros(startx, starty, angle, cropLength, img, bone, btwo, labele
             newx = startx + i * np.cos(np.radians(angle))
             
             # Check if the pixel is a number or zero
-            isNumber = img[round(newy)][round(newx)] != 0
+            isNumber = img[round(newy), round(newx)] != 0
             
             # Update flags based on the encountered pixels
             if isNumber and not foundFirstNumbers:
@@ -88,12 +89,6 @@ def cutIsValidByZeros(startx, starty, angle, cropLength, img, bone, btwo, labele
         return True
     except:
         return False
-
-def toTupleList(vy, vx):
-    v_units = np.array([vy, vx]).T
-    tupleList = [tuple(n) for n in v_units]
-    return tupleList
-
 
 def cut_at_best(img, cut_range, plot_cut=False):
     # Create a copy of the input image
@@ -219,125 +214,122 @@ def cut_at_best(img, cut_range, plot_cut=False):
 
     return buildImg
 
-parser = ArgumentParser()
-parser.add_argument("src_dir")
-parser.add_argument("rgb_dir")
-parser.add_argument("out_dir")
-parser.add_argument('--mode', choices=['eros', 'thinned'], help='execution mode', default='eros')
-args = parser.parse_args()
-
-for filename in os.listdir(args.src_dir):
-    if not filename.endswith(('.jpg', '.png', 'jpeg')):
-        continue
-
-    print(filename)
-
-    # Read the image file
-    img = imread(os.path.join(args.src_dir, filename))
-    
-    # Convert image to grayscale if it has multiple channels
-    if len(img.shape) >= 3: img = img[:, :, 0]
-
-    # Check if the most frequent pixel value is 255 (white)
-    most_frequent = np.argmax(np.bincount(img.flatten()))
-    if most_frequent == 255:
-        # Invert the image if it's mostly white
-        img = np.abs(img.max() - img)
-
-    # Crop the image by removing a 10-pixel border
-    border_size = 10
-    img = img[border_size:-border_size, border_size:-border_size]
-
-    # Set the last row and column of the image to zero
-    height, width = img.shape
-    img[height - 1, :] = 0
-    img[:, width - 1]  = 0
-
-    # Perform the "cut_at_best" method on the image with a cut size of 12 pixels
-    buildImg = cut_at_best(img, cut_range=12)
-    
-    # Check if the resulting image contains only zeros and ones
-    if not np.all(np.isin(buildImg.flatten(), (0, 1))):
-
-        # Convert the image to binary and label the connected components
-        buildImg = np.where(buildImg > 0, 1, 0)
-        buildImg = label(buildImg, background=0, connectivity=2)
-
-        # Find the most frequent label value
-        binCount = np.bincount(buildImg.flatten())
-        binCount[0] = 0
-        freqValue = np.argmax(binCount)
-        buildImg = np.where(buildImg == freqValue, 1, 0)
-
-    # Create a diamond-shaped filter
-    filter = diamond(1)
-    
-    # Label the connected components in the "buildImg" image
-    lb = label(buildImg, background=1, connectivity=1)
-    
-    # Find the label with the highest frequency
+def get_largest_component(mask, background=1, inverse=False):
+    lb = label(mask, background=background, connectivity=1)
     hI = np.argmax(np.bincount(lb.flatten()))
+    return np.where(lb == hI, 1, 0) if not inverse else np.where(lb == hI, 0, 1)
 
-    # Create a binary mask where pixels have the highest frequency label
-    outMask = np.where(lb == hI, 1, 0)
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("src_dir")
+    parser.add_argument("rgb_dir")
+    parser.add_argument("out_dir")
+    parser.add_argument('--mode', choices=['eros', 'thinned'], help='execution mode', default='eros')
+    parser.add_argument('--visualize', action="store_true", help="plot results")
+    args = parser.parse_args()
 
-    if args.mode == "eros":
-        # Create an opened version of the binary mask using the diamond filter
-        out_mask_morphed = np.where(outMask == 1, 0, 1)
-        be = opening(out_mask_morphed, footprint=filter)
+    for filename in os.listdir(args.src_dir):
+        if not filename.endswith(('.jpg', '.png', 'jpeg')):
+            continue
 
-        # Label the connected components in the opened mask
-        lb = label(be, background=0, connectivity=1)
-        bC = np.bincount(lb.flatten())
-        bC[0] = 0
-        hI = np.argmax(bC)
+        print(filename)
+
+        # Read the image file
+        img = imread(os.path.join(args.src_dir, filename))
         
-        # Create a new binary mask where pixels have the highest frequency label
-        out_mask_morphed = np.where(lb == hI, 1, 0)
-    elif args.mode == "thinned":
-        thinned = binary_closing(skeletonize(buildImg))
-        lb = label(thinned, background=1, connectivity=1)
-        hI = np.argmax(np.bincount(lb.flatten()))
-        out_mask_morphed = np.where(lb == hI, 0, 1)
+        # Convert image to grayscale if it has multiple channels
+        if len(img.shape) >= 3: img = img[:, :, 0]
 
-    # Generate the final contour by subtracting erosion from the opened mask
-    finalContour = out_mask_morphed - erosion(out_mask_morphed, footprint=filter)
+        # Check if the most frequent pixel value is 255 (white)
+        most_frequent = np.argmax(np.bincount(img.flatten()))
+        if most_frequent == 255:
+            # Invert the image if it's mostly white
+            img = np.abs(img.max() - img)
 
-    # Determine the corresponding original image filename
-    if os.path.exists(args.rgb_dir + "/" + filename[0: filename.rindex(".")] + ".JPEG"):
-        orgImg = imread(args.rgb_dir + "/" + filename[0: filename.rindex(".")] + ".JPEG")
-    else:
-        orgImg = imread(args.rgb_dir + "/" + filename[0: filename.rindex(".")] + ".jpg")
+        # Crop the image by removing a 10-pixel border
+        border_size = 10
+        img = img[border_size:-border_size, border_size:-border_size]
 
-    # Crop the masks and filtered image by removing a 40-pixel border
-    outMask = outMask[40:-40, 40:-40]
-    out_mask_morphed = out_mask_morphed[40:-40, 40:-40]
+        # Set the last row and column of the image to zero
+        height, width = img.shape
+        img[height - 1, :] = 0
+        img[:, width - 1]  = 0
 
-    # Invert the mask
-    outMask = np.where(outMask == 1, 0, 1)
-    orgImgFiltered = np.zeros_like(orgImg)
-    
-    # Copy pixels from the original image to the filtered image based on the inverted mask
-    for idy in range(0, out_mask_morphed.shape[0] - 1):
-        for idx in range(0, out_mask_morphed.shape[1] - 1):
-            if out_mask_morphed[idy, idx] == 1:
-                orgImgFiltered[idy, idx] = orgImg[idy, idx]
+        # Perform the "cut_at_best" method on the image with a cut size of 12 pixels
+        buildImg = cut_at_best(img, cut_range=12, plot_cut=args.visualize)
+        
+        # Check if the resulting image contains only zeros and ones
+        if not np.all(np.isin(buildImg.flatten(), (0, 1))):
 
-    # Display the contour image
-    plt.figure("Contour")
-    plt.imshow(finalContour)
+            # Convert the image to binary and label the connected components
+            buildImg = np.where(buildImg > 0, 1, 0)
+            buildImg = label(buildImg, background=0, connectivity=2)
 
-    # Display the segmented image
-    plt.figure("Segmentation")
-    plt.imshow(orgImgFiltered)
+            # Find the most frequent label value
+            binCount = np.bincount(buildImg.flatten())
+            binCount[0] = 0
+            freqValue = np.argmax(binCount)
+            buildImg = np.where(buildImg == freqValue, 1, 0)
 
-    # Display the binary mask image
-    plt.figure("BinaryMask")
-    plt.imshow(out_mask_morphed)
+        # Create a diamond-shaped filter
+        filter = diamond(1)
 
-    imsave(args.out_dir + "/" + args.mode + "/" + filename[0: filename.rindex(".")] + "segmentation" + ".png", orgImgFiltered)
-    imsave(args.out_dir + "/" + args.mode + "/" + filename[0: filename.rindex(".")] + "binaryContour" + ".png", finalContour, cmap="gray", vmin=0, vmax=1)
-    imsave(args.out_dir + "/" + args.mode + "/" + filename[0: filename.rindex(".")] + "binaryMask" + ".png", out_mask_morphed, cmap="gray", vmin=0, vmax=1)
-    
-    # Show the plotted images
-    plt.show()
+        outMask = get_largest_component(buildImg, background=1)
+
+        if args.mode == "eros":
+            # Invert the mask and apply morphological opening
+            opened = opening(1 - outMask, footprint=filter)
+            
+            # Get the largest component again after opening
+            out_mask_morphed = get_largest_component(opened, background=0, inverse=True)
+
+        elif args.mode == "thinned":
+            # Skeletonize and close the original image
+            thinned = binary_closing(skeletonize(buildImg))
+            
+            # Invert after extracting the largest component from thinned
+            out_mask_morphed = get_largest_component(thinned, background=1, inverse=True)
+
+        # Generate the final contour by subtracting erosion from the opened mask
+        finalContour = out_mask_morphed - erosion(out_mask_morphed, footprint=filter)
+
+        # Determine the corresponding original image filename
+        if os.path.exists(args.rgb_dir + "/" + filename[0: filename.rindex(".")] + ".JPEG"):
+            orgImg = imread(args.rgb_dir + "/" + filename[0: filename.rindex(".")] + ".JPEG")
+        else:
+            orgImg = imread(args.rgb_dir + "/" + filename[0: filename.rindex(".")] + ".jpg")
+
+        # Crop the masks and filtered image by removing a 40-pixel border
+        outMask = outMask[40:-40, 40:-40]
+        out_mask_morphed = out_mask_morphed[40:-40, 40:-40]
+
+        # Invert the mask
+        outMask = np.where(outMask == 1, 0, 1)
+        orgImgFiltered = np.zeros_like(orgImg)
+        
+        # Copy pixels from the original image to the filtered image based on the inverted mask
+        for idy in range(0, out_mask_morphed.shape[0] - 1):
+            for idx in range(0, out_mask_morphed.shape[1] - 1):
+                if out_mask_morphed[idy, idx] == 1:
+                    orgImgFiltered[idy, idx] = orgImg[idy, idx]
+
+        if args.visualize:
+            # Display the contour image
+            plt.figure("Contour")
+            plt.imshow(finalContour)
+
+            # Display the segmented image
+            plt.figure("Segmentation")
+            plt.imshow(orgImgFiltered)
+
+            # Display the binary mask image
+            plt.figure("BinaryMask")
+            plt.imshow(out_mask_morphed)
+
+        filename_no_ext = Path(filename).stem
+        imsave(os.path.join(args.out_dir, args.mode, f"{filename_no_ext}_segmentation.png"), orgImgFiltered)
+        imsave(os.path.join(args.out_dir, args.mode, f"{filename_no_ext}_binary_contour.png"), finalContour, cmap="gray", vmin=0, vmax=1)
+        imsave(os.path.join(args.out_dir, args.mode, f"{filename_no_ext}_binary_mask.png"), out_mask_morphed, cmap="gray", vmin=0, vmax=1)
+        
+        # Show the plotted images
+        plt.show()
