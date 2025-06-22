@@ -327,9 +327,11 @@ if __name__ == "__main__":
             plt.imshow(out_mask_morphed)
 
         filename_no_ext = Path(filename).stem
-        imsave(os.path.join(args.out_dir, args.mode, f"{filename_no_ext}_segmentation.png"), orgImgFiltered)
-        imsave(os.path.join(args.out_dir, args.mode, f"{filename_no_ext}_binary_contour.png"), finalContour, cmap="gray", vmin=0, vmax=1)
-        imsave(os.path.join(args.out_dir, args.mode, f"{filename_no_ext}_binary_mask.png"), out_mask_morphed, cmap="gray", vmin=0, vmax=1)
+        output_dir = os.path.join(args.out_dir, args.mode)
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        imsave(os.path.join(output_dir, f"{filename_no_ext}_segmentation.png"), orgImgFiltered)
+        imsave(os.path.join(output_dir, f"{filename_no_ext}_binary_contour.png"), finalContour, cmap="gray", vmin=0, vmax=1)
+        imsave(os.path.join(output_dir, f"{filename_no_ext}_binary_mask.png"), out_mask_morphed, cmap="gray", vmin=0, vmax=1)
         
         # Show the plotted images
         plt.show()
