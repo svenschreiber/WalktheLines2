@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wtl2"
+version = "0.1.0"
+dependencies = [
+    "numpy",
+    "torch",
+    "opencv-python",
+    "matplotlib",
+    "scipy",
+    "scikit-image",
+    "tqdm",
+    "h5py",
+]
+requires-python = ">=3.10"
+authors = [
+    { name="André Kelm", email="andre.kelm@uni-hamburg.de" },
+]
+maintainers = [
+    { name="Sven Schreiber", email="sven.schreiber@uni-hamburg.de" },
+]
+description = "Walk the Lines 2: Contour Tracking for Detailed Segmentation of Infrared Ships and Other Objects"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+
+[tool.setuptools.packages.find]
+include = ["wtl2"]  
+
+[project.urls]
+Repository = "https://github.com/svenschreiber/WalktheLines2"
