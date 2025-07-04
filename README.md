@@ -19,7 +19,8 @@ pip install -e .
 ```
 
 ## Usage
-This is a minimal example to use the WtL2 algorithm. A checkpoint file for the TracerNet model is included in this repository, and can be found in the [`checkpoints/`](checkpoints) directory.
+The following is a minimal example for using the WtL2 algorithm. A pre-trained checkpoint for the TracerNet model is included and can be found in the [`checkpoints`](checkpoints) directory. Note: The algorithm performs best when using 16-bit soft contour maps as input.
+
 ```python
 import cv2
 from wtl2 import WtL2
@@ -36,6 +37,7 @@ cont = cv2.imread("soft_contour_map.png", -1)
 result = wtl.tracer_walk(img, cont)
 cv2.imwrite("output.png", result)
 ```
+
 For additional information about the usage, see the provided [`example.ipynb`](examples/example.ipynb) notebook.
 
 ### Binarization
