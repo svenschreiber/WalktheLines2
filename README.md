@@ -47,19 +47,19 @@ If you use Walk the Lines 2 in your research, please use the following BibTeX en
 ```bibtex
 @InProceedings{KelmWtL22025,
   author    = {Kelm, Andr{\'e} Peter and Braeschke, Max and G{\"u}lsoylu, Emre and Frintrop, Simone},
-  title=Walk the Lines 2: Contour Tracking for Detailed Segmentation of Infrared Ships and Other Objects,
-  booktitle=CAIP,
-  year=2025,
-  publisher=Springer,
-  address=Cham
+  title     = {Walk the Lines 2: Contour Tracking for Detailed Segmentation of Infrared Ships and Other Objects},
+  booktitle = {CAIP},
+  year      = {2025},
+  publisher = {Springer},
+  address   = {Cham}
 }
 
 @phdthesis{Kelm2025,
-  author = {Kelm, André Peter},
-  title = {Extraktion geschlossener Schiffs- und Objektkonturen mit 1-Pixel-Breite zur präzisen Segmentierung in Farb- und Infrarotbildern durch Deep Learning},
-  school = {Helmut Schmidt University},
+  author  = {Kelm, André Peter},
+  title   = {Extraktion geschlossener Schiffs- und Objektkonturen mit 1-Pixel-Breite zur präzisen Segmentierung in Farb- und Infrarotbildern durch Deep Learning},
+  school  = {Helmut Schmidt University},
   address = {Holstenhofweg 85, 22043 Hamburg, Germany},
-  year = {2025},
-  note = {Doctoral dissertation, expected 2025}
+  year    = {2025},
+  note    = {Doctoral dissertation, expected 2025}
 }
 ```
