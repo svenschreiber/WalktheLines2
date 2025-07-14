@@ -44,7 +44,7 @@ For additional information about the usage, see the provided [`example.ipynb`](e
 
 ## Citing Walk the Lines 2
 If you use Walk the Lines 2 in your research, please use the following BibTeX entry.
-```
+```bibtex
 @InProceedings{KelmWtL22025,
   author    = {Kelm, Andr{\'e} Peter and Braeschke, Max and G{\"u}lsoylu, Emre and Frintrop, Simone},
   title=Walk the Lines 2: Contour Tracking for Detailed Segmentation of Infrared Ships and Other Objects,
